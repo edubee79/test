@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>TOEIC Actual Test Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #333; font-family: 'Malgun Gothic', sans-serif; }
+        
+        /* 상단 바 */
+        .header-bar {
+            height: 50px; background: #1a1a1a; color: #fff; border-bottom: 2px solid #444;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 25px;
+        }
+        #timer { color: #00ff00; font-size: 24px; font-weight: bold; font-family: monospace; }
+
+        .main-layout { display: flex; height: calc(100% - 52px); }
+
+        /* 왼쪽 90% 시험지 영역 */
+        .viewer-container {
+            width: 90%; height: 100%; display: flex; gap: 10px; padding: 15px;
+            box-sizing: border-box; background: #525659; justify-content: center;
+        }
+
+        /* 여백 커팅 박스 */
+        .page-wrapper {
+            flex: 1; height: 100%; background: white; 
+            overflow: hidden; /* 여백 잘라내기 핵심 */
+            position: relative; border: 1px solid #000; box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+        }
+
+        canvas {
+            position: absolute;
+            /* 여백 수치: -80px(상단), -70px(좌측) 정도가 약 2cm입니다 */
+            top: -85px;    
+            left: -75px;   
+            transform: scale(1.25); /* 잘라낸 공간만큼 내용물 확대 */
+            transform-origin: top left;
+        }
+
+        /* 오른쪽 10% OMR 영역 */
+        .omr-panel {
+            width: 10%; background: #ffffff; border-left: 1px solid #ccc;
+            overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 15px 0;
+        }
+        .omr-row { margin-bottom: 10px; font-size: 14px; font-weight: bold; color: #333; }
+        .omr-row input { margin: 0 2px; transform: scale(1.1); cursor: pointer; }
+        
+        .submit-btn {
+            margin-top: 20px; padding: 10px 20px; background: #007bff; color: white;
+            border: none; border-radius: 5px; cursor: pointer; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-bar">
+    <span style="font-size: 18px;">TOEIC RC PART 5&6 실전 모의고사</span>
+    <div id="timer">75:00</div>
+    <button class="submit-btn" onclick="alert('제출되었습니다!')">시험 종료</button>
+</div>
+
+<div class="main-layout">
+    <div class="viewer-container">
+        <div class="page-wrapper"><canvas id="canvas-left"></canvas></div>
+        <div class="page-wrapper"><canvas id="canvas-right"></canvas></div>
+    </div>
+
+    <div class="omr-panel" id="omr-list">
+        <b style="margin-bottom:15px; border-bottom: 2px solid #333; width: 80%; text-align: center; padding-bottom: 5px;">OMR CARD</b>
+    </div>
+</div>
+
+<script>
+    // 1. OMR 200번 자동 생성 로직
+    const omrList = document.getElementById('omr-list');
+    for(let i=1; i<=200; i++) {
+        omrList.innerHTML += `
+            <div class="omr-row">
+                ${String(i).padStart(3, '0')} 
+                <input type="radio" name="q${i}" value="1">
+                <input type="radio" name="q${i}" value="2">
+                <input type="radio" name="q${i}" value="3">
+                <input type="radio" name="q${i}" value="4">
+            </div>`;
+    }
+
+    // 2. 타이머 로직 (75분)
+    let time = 75 * 60;
+    const timerDisplay = document.getElementById('timer');
+    const timerInterval = setInterval(() => {
+        let min = Math.floor(time / 60);
+        let sec = time % 60;
+        timerDisplay.innerText = `${min}:${sec < 10 ? '0'+sec : sec}`;
+        if(time <= 300) timerDisplay.style.color = '#ff4444'; // 5분 남으면 빨간색
+        if(time > 0) time--;
+        else {
+            clearInterval(timerInterval);
+            alert("시험 시간이 종료되었습니다.");
+        }
+    }, 1000);
+
+    // 3. Vercel Rewrite를 통한 PDF 로드 (CORS 회피)
+    const pdfUrl = '/pdf-proxy/RC1-1part56.pdf?alt=media&token=deef03c4-c3f4-42d3-9399-18a57150fceb';
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    async function loadPDF() {
+        try {
+            const loadingTask = pdfjsLib.getDocument(pdfUrl);
+            const pdf = await loadingTask.promise;
+            
+            // 1페이지(좌), 2페이지(우) 렌더링
+            renderPage(pdf, 1, 'canvas-left');
+            renderPage(pdf, 2, 'canvas-right');
+        } catch (e) {
+            console.error("PDF 로드 오류:", e);
+            alert("PDF를 불러올 수 없습니다. vercel.json 설정을 확인해주세요.");
+        }
+    }
+
+    async function renderPage(pdf, num, canvasId) {
+        const page = await pdf.getPage(num);
+        const canvas = document.getElementById(canvasId);
+        const context = canvas.getContext('2d');
+        
+        // 고해상도 렌더링
+        const viewport = page.getViewport({ scale: 2.5 }); 
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = { canvasContext: context, viewport: viewport };
+        await page.render(renderContext).promise;
+    }
+
+    loadPDF();
+</script>
+
+</body>
+</html>
