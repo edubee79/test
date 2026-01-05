@@ -2,8 +2,9 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>TOEIC Actual Test - Final</title>
+    <title>TOEIC Actual Test</title>
     <style>
+        /* 여백 없이 화면 꽉 채우기 */
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #333; font-family: sans-serif; }
         
         .header-bar {
@@ -14,12 +15,12 @@
 
         .main-layout { display: flex; height: calc(100% - 45px); width: 100%; }
 
-        /* 시험지 영역 (90%) - 브라우저 순정 뷰어 */
+        /* 시험지 영역 90% - 군더더기 없이 꽉 채움 */
         .viewer-container {
             width: 90%; height: 100%; background: #525659;
         }
 
-        /* OMR 영역 (10%) */
+        /* OMR 영역 10% */
         .omr-panel {
             width: 10%; height: 100%; background: #ffffff; 
             border-left: 2px solid #222; overflow-y: auto; 
@@ -27,24 +28,23 @@
             box-sizing: border-box;
         }
         .omr-row { margin-bottom: 7px; font-size: 13px; font-weight: bold; }
-        .omr-row input { margin: 0 2px; width: 15px; height: 15px; cursor: pointer; }
+        .omr-row input { margin: 0 2px; width: 16px; height: 16px; cursor: pointer; }
         
-        .btn { padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; border: none; }
-        .btn-submit { background: #007bff; color: white; }
+        .btn-submit { padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; border: none; background: #007bff; color: white; }
     </style>
 </head>
 <body>
 
 <div class="header-bar">
     <div id="timer">00:00</div>
-    <div style="font-size: 18px; color: #ccc;">TOEIC 실전 시뮬레이터</div>
-    <button class="btn btn-submit" onclick="gradeTest()">채점 및 종료</button>
+    <div style="font-size: 18px; color: #ccc;">TOEIC RC PART 5&6</div>
+    <button class="btn-submit" onclick="gradeTest()">채점 및 종료</button>
 </div>
 
 <div class="main-layout">
     <div class="viewer-container">
         <embed 
-            src="https://firebasestorage.googleapis.com/v0/b/eduthot-fb088.firebasestorage.app/o/RC1-1part56.pdf?alt=media&token=deef03c4-c3f4-42d3-9399-18a57150fceb" 
+            src="/pdf-proxy/RC1-1part56.pdf?alt=media&token=deef03c4-c3f4-42d3-9399-18a57150fceb" 
             type="application/pdf" 
             width="100%" 
             height="100%"
@@ -52,22 +52,15 @@
     </div>
 
     <div class="omr-panel" id="omr-list">
-        <b style="margin-bottom:15px; border-bottom: 2px solid #333; width: 85%; text-align: center; padding-bottom:5px;">OMR CARD</b>
+        <b style="margin-bottom:15px; border-bottom: 2px solid #333; width: 85%; text-align: center; padding-bottom:5px;">OMR</b>
     </div>
 </div>
 
 <script>
-    // 1. OMR 생성 (101~146)
+    // 1. OMR (101~146)
     const omrList = document.getElementById('omr-list');
     for(let i=101; i<=146; i++) {
-        omrList.innerHTML += `
-            <div class="omr-row">
-                ${i}. 
-                <input type="radio" name="q${i}" value="1">
-                <input type="radio" name="q${i}" value="2">
-                <input type="radio" name="q${i}" value="3">
-                <input type="radio" name="q${i}" value="4">
-            </div>`;
+        omrList.innerHTML += `<div class="omr-row">${i}. <input type="radio" name="q${i}" value="1"><input type="radio" name="q${i}" value="2"><input type="radio" name="q${i}" value="3"><input type="radio" name="q${i}" value="4"></div>`;
     }
 
     // 2. 스톱워치
@@ -80,7 +73,7 @@
         timerDisplay.innerText = `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
     }, 1000);
 
-    // 3. 정답 데이터 및 채점
+    // 3. 채점
     const answers = { 101:"1", 102:"2", 103:"3", 104:"4", 105:"1", 106:"2", 107:"3", 108:"4", 109:"3", 110:"1", 111:"2", 112:"4", 113:"1", 114:"3", 115:"2", 116:"1", 117:"4", 118:"3", 119:"2", 120:"1", 121:"4", 122:"3", 123:"2", 124:"1", 125:"4", 126:"3", 127:"2", 128:"1", 129:"4", 130:"3", 131:"1", 132:"2", 133:"3", 134:"4", 135:"1", 136:"2", 137:"3", 138:"4", 139:"1", 140:"2", 141:"3", 142:"4", 143:"1", 144:"2", 145:"3", 146:"4" };
 
     function gradeTest() {
@@ -89,7 +82,7 @@
             const selected = document.querySelector(`input[name="q${i}"]:checked`);
             if (selected && selected.value === answers[i]) score++;
         }
-        alert(`수고하셨습니다!\n소요시간: ${timerDisplay.innerText}\n최종 점수: ${score} / 46`);
+        alert(`수고하셨습니다!\n점수: ${score} / 46\n시간: ${timerDisplay.innerText}`);
     }
 </script>
 </body>
