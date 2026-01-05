@@ -2,8 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>TOEIC Simulator - Part 5&6</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <title>TOEIC Actual Test - Clear View</title>
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #333; font-family: sans-serif; }
         
@@ -16,25 +15,19 @@
 
         .main-layout { display: flex; height: calc(100% - 45px); width: 100%; }
 
-        /* 시험지 영역 (90%) */
+        /* 시험지 영역 (90%) - 브라우저 순정 뷰어 삽입 */
         .viewer-container {
-            width: 90%; height: 100%; display: flex; gap: 10px; padding: 10px;
-            box-sizing: border-box; background: #525659; justify-content: center;
+            width: 90%; height: 100%; background: #525659;
         }
-        .page-wrapper {
-            flex: 1; height: 100%; background: white; 
-            display: flex; justify-content: center; overflow-y: auto; border: 1px solid #000;
-        }
-        canvas { max-width: 100%; height: auto !important; }
 
         /* OMR 영역 (10%) */
         .omr-panel {
             width: 10%; height: 100%; background: #ffffff; 
             border-left: 2px solid #222; overflow-y: auto; 
-            display: flex; flex-direction: column; align-items: center; padding: 10px 0;
+            display: flex; flex-direction: column; align-items: center; padding: 15px 0;
             box-sizing: border-box;
         }
-        .omr-row { margin-bottom: 6px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+        .omr-row { margin-bottom: 6px; font-size: 12px; font-weight: bold; }
         .omr-row input { margin: 0 1px; cursor: pointer; width: 14px; height: 14px; }
         
         .btn { padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; border: none; }
@@ -46,17 +39,21 @@
 
 <div class="header-bar">
     <div id="timer">00:00</div>
-    <div style="font-size: 16px;">TOEIC RC Part 5 & 6</div>
+    <div style="font-size: 16px;">TOEIC Part 5 & 6 (High Resolution)</div>
     <div>
-        <button class="btn btn-full" onclick="toggleFullScreen()">전체 화면 (F)</button>
-        <button class="btn btn-submit" onclick="gradeTest()">시험 종료 및 채점</button>
+        <button class="btn btn-full" onclick="toggleFullScreen()">전체 화면</button>
+        <button class="btn btn-submit" onclick="gradeTest()">채점 및 종료</button>
     </div>
 </div>
 
 <div class="main-layout">
     <div class="viewer-container">
-        <div class="page-wrapper"><canvas id="canvas-left"></canvas></div>
-        <div class="page-wrapper"><canvas id="canvas-right"></canvas></div>
+        <embed 
+            src="/pdf-proxy/RC1-1part56.pdf?alt=media&token=deef03c4-c3f4-42d3-9399-18a57150fceb#toolbar=0&navpanes=0" 
+            type="application/pdf" 
+            width="100%" 
+            height="100%"
+        />
     </div>
 
     <div class="omr-panel" id="omr-list">
@@ -65,16 +62,16 @@
 </div>
 
 <script>
-    // 1. 설정 및 정답 데이터 (테스트용 정답 - 나중에 실제 정답으로 수정하세요)
+    // 1. 정답 데이터 (101~146) - 필요시 수정하세요
     const answers = {
-        101: "1", 102: "2", 103: "3", 104: "4", 105: "1", 106: "2", 107: "3", 108: "4", 109: "3", 110: "1",
-        111: "2", 112: "4", 113: "1", 114: "3", 115: "2", 116: "1", 117: "4", 118: "3", 119: "2", 120: "1",
-        121: "4", 122: "3", 123: "2", 124: "1", 125: "4", 126: "3", 127: "2", 128: "1", 129: "4", 130: "3",
-        131: "1", 132: "2", 133: "3", 134: "4", 135: "1", 136: "2", 137: "3", 138: "4", 139: "1", 140: "2",
-        141: "3", 142: "4", 143: "1", 144: "2", 145: "3", 146: "4"
+        101:"1", 102:"2", 103:"3", 104:"4", 105:"1", 106:"2", 107:"3", 108:"4", 109:"3", 110:"1",
+        111:"2", 112:"4", 113:"1", 114:"3", 115:"2", 116:"1", 117:"4", 118:"3", 119:"2", 120:"1",
+        121:"4", 122:"3", 123:"2", 124:"1", 125:"4", 126:"3", 127:"2", 128:"1", 129:"4", 130:"3",
+        131:"1", 132:"2", 133:"3", 134:"4", 135:"1", 136:"2", 137:"3", 138:"4", 139:"1", 140:"2",
+        141:"3", 142:"4", 143:"1", 144:"2", 145:"3", 146:"4"
     };
 
-    // 2. OMR 생성 (101~146)
+    // 2. OMR 자동 생성
     const omrList = document.getElementById('omr-list');
     for(let i=101; i<=146; i++) {
         omrList.innerHTML += `
@@ -87,7 +84,7 @@
             </div>`;
     }
 
-    // 3. 스톱워치 로직
+    // 3. 스톱워치 (00:00부터 카운트업)
     let seconds = 0;
     const timerDisplay = document.getElementById('timer');
     const stopwatch = setInterval(() => {
@@ -106,11 +103,11 @@
         }
     }
 
-    // 5. 채점 로직
+    // 5. 자동 채점 기능
     function gradeTest() {
         clearInterval(stopwatch);
-        let part5Correct = 0; // 101~130
-        let part6Correct = 0; // 131~146
+        let part5Correct = 0;
+        let part6Correct = 0;
         
         for(let i=101; i<=146; i++) {
             const selected = document.querySelector(`input[name="q${i}"]:checked`);
@@ -122,44 +119,16 @@
 
         const totalTime = timerDisplay.innerText;
         alert(`
-            [채점 결과 보고서]
+            [채점 완료]
             ----------------------
             진행 시간: ${totalTime}
             ----------------------
-            Part 5: ${part5Correct} / 30
-            Part 6: ${part6Correct} / 16
-            총 맞은 개수: ${part5Correct + part6Correct} / 46
+            Part 5 (101~130): ${part5Correct} / 30
+            Part 6 (131~146): ${part6Correct} / 16
             ----------------------
-            수고하셨습니다!
+            총 맞은 개수: ${part5Correct + part6Correct} / 46
         `);
     }
-
-    // 6. PDF 로드 (Vercel 프록시)
-    const pdfUrl = '/pdf-proxy/RC1-1part56.pdf?alt=media&token=deef03c4-c3f4-42d3-9399-18a57150fceb';
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-    async function loadPDF() {
-        const loadingTask = pdfjsLib.getDocument(pdfUrl);
-        const pdf = await loadingTask.promise;
-        renderPage(pdf, 1, 'canvas-left');
-        renderPage(pdf, 2, 'canvas-right');
-    }
-
-    async function renderPage(pdf, num, canvasId) {
-        const page = await pdf.getPage(num);
-        const canvas = document.getElementById(canvasId);
-        const context = canvas.getContext('2d');
-        const wrapper = canvas.parentElement;
-        const viewport = page.getViewport({ scale: 2.0 });
-        const scale = wrapper.clientHeight / viewport.height;
-        const scaledViewport = page.getViewport({ scale: scale });
-        canvas.height = scaledViewport.height;
-        canvas.width = scaledViewport.width;
-        page.render({ canvasContext: context, viewport: scaledViewport });
-    }
-
-    loadPDF();
-    // 시작 시 전체 화면 시도 (브라우저 정책상 사용자 클릭 시에만 가능하므로 버튼 클릭 권장)
 </script>
 </body>
 </html>
