@@ -2,62 +2,55 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>TOEIC Actual Test Simulator</title>
+    <title>TOEIC Simulator - Part 5&6</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #333; font-family: 'Malgun Gothic', sans-serif; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #333; font-family: sans-serif; }
         
         /* 상단 바 */
         .header-bar {
-            height: 50px; background: #1a1a1a; color: #fff; border-bottom: 2px solid #444;
-            display: flex; align-items: center; justify-content: space-between; padding: 0 25px;
+            height: 45px; background: #1a1a1a; color: #fff;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
         }
-        #timer { color: #00ff00; font-size: 24px; font-weight: bold; font-family: monospace; }
+        #timer { color: #00ff00; font-size: 22px; font-weight: bold; font-family: monospace; }
 
-        .main-layout { display: flex; height: calc(100% - 52px); }
+        .main-layout { display: flex; height: calc(100% - 45px); width: 100%; }
 
-        /* 왼쪽 90% 시험지 영역 */
+        /* 시험지 영역 (90%) */
         .viewer-container {
-            width: 90%; height: 100%; display: flex; gap: 10px; padding: 15px;
+            width: 90%; height: 100%; display: flex; gap: 10px; padding: 10px;
             box-sizing: border-box; background: #525659; justify-content: center;
         }
-
-        /* 여백 커팅 박스 */
         .page-wrapper {
             flex: 1; height: 100%; background: white; 
-            overflow: hidden; /* 여백 잘라내기 핵심 */
-            position: relative; border: 1px solid #000; box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+            display: flex; justify-content: center; overflow-y: auto; border: 1px solid #000;
         }
+        canvas { max-width: 100%; height: auto !important; }
 
-        canvas {
-            position: absolute;
-            /* 여백 수치: -80px(상단), -70px(좌측) 정도가 약 2cm입니다 */
-            top: -85px;    
-            left: -75px;   
-            transform: scale(1.25); /* 잘라낸 공간만큼 내용물 확대 */
-            transform-origin: top left;
-        }
-
-        /* 오른쪽 10% OMR 영역 */
+        /* OMR 영역 (10%) */
         .omr-panel {
-            width: 10%; background: #ffffff; border-left: 1px solid #ccc;
-            overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 15px 0;
+            width: 10%; height: 100%; background: #ffffff; 
+            border-left: 2px solid #222; overflow-y: auto; 
+            display: flex; flex-direction: column; align-items: center; padding: 10px 0;
+            box-sizing: border-box;
         }
-        .omr-row { margin-bottom: 10px; font-size: 14px; font-weight: bold; color: #333; }
-        .omr-row input { margin: 0 2px; transform: scale(1.1); cursor: pointer; }
+        .omr-row { margin-bottom: 6px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+        .omr-row input { margin: 0 1px; cursor: pointer; width: 14px; height: 14px; }
         
-        .submit-btn {
-            margin-top: 20px; padding: 10px 20px; background: #007bff; color: white;
-            border: none; border-radius: 5px; cursor: pointer; font-weight: bold;
-        }
+        .btn { padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; border: none; }
+        .btn-full { background: #555; color: white; margin-right: 10px; }
+        .btn-submit { background: #007bff; color: white; }
     </style>
 </head>
 <body>
 
 <div class="header-bar">
-    <span style="font-size: 18px;">TOEIC RC PART 5&6 실전 모의고사</span>
-    <div id="timer">75:00</div>
-    <button class="submit-btn" onclick="alert('제출되었습니다!')">시험 종료</button>
+    <div id="timer">00:00</div>
+    <div style="font-size: 16px;">TOEIC RC Part 5 & 6</div>
+    <div>
+        <button class="btn btn-full" onclick="toggleFullScreen()">전체 화면 (F)</button>
+        <button class="btn btn-submit" onclick="gradeTest()">시험 종료 및 채점</button>
+    </div>
 </div>
 
 <div class="main-layout">
@@ -67,17 +60,26 @@
     </div>
 
     <div class="omr-panel" id="omr-list">
-        <b style="margin-bottom:15px; border-bottom: 2px solid #333; width: 80%; text-align: center; padding-bottom: 5px;">OMR CARD</b>
+        <b style="margin-bottom:10px; border-bottom: 2px solid #333; width: 85%; text-align: center; padding-bottom:5px;">OMR CARD</b>
     </div>
 </div>
 
 <script>
-    // 1. OMR 200번 자동 생성 로직
+    // 1. 설정 및 정답 데이터 (테스트용 정답 - 나중에 실제 정답으로 수정하세요)
+    const answers = {
+        101: "1", 102: "2", 103: "3", 104: "4", 105: "1", 106: "2", 107: "3", 108: "4", 109: "3", 110: "1",
+        111: "2", 112: "4", 113: "1", 114: "3", 115: "2", 116: "1", 117: "4", 118: "3", 119: "2", 120: "1",
+        121: "4", 122: "3", 123: "2", 124: "1", 125: "4", 126: "3", 127: "2", 128: "1", 129: "4", 130: "3",
+        131: "1", 132: "2", 133: "3", 134: "4", 135: "1", 136: "2", 137: "3", 138: "4", 139: "1", 140: "2",
+        141: "3", 142: "4", 143: "1", 144: "2", 145: "3", 146: "4"
+    };
+
+    // 2. OMR 생성 (101~146)
     const omrList = document.getElementById('omr-list');
-    for(let i=1; i<=200; i++) {
+    for(let i=101; i<=146; i++) {
         omrList.innerHTML += `
             <div class="omr-row">
-                ${String(i).padStart(3, '0')} 
+                ${i}. 
                 <input type="radio" name="q${i}" value="1">
                 <input type="radio" name="q${i}" value="2">
                 <input type="radio" name="q${i}" value="3">
@@ -85,56 +87,79 @@
             </div>`;
     }
 
-    // 2. 타이머 로직 (75분)
-    let time = 75 * 60;
+    // 3. 스톱워치 로직
+    let seconds = 0;
     const timerDisplay = document.getElementById('timer');
-    const timerInterval = setInterval(() => {
-        let min = Math.floor(time / 60);
-        let sec = time % 60;
-        timerDisplay.innerText = `${min}:${sec < 10 ? '0'+sec : sec}`;
-        if(time <= 300) timerDisplay.style.color = '#ff4444'; // 5분 남으면 빨간색
-        if(time > 0) time--;
-        else {
-            clearInterval(timerInterval);
-            alert("시험 시간이 종료되었습니다.");
-        }
+    const stopwatch = setInterval(() => {
+        seconds++;
+        let m = Math.floor(seconds / 60);
+        let s = seconds % 60;
+        timerDisplay.innerText = `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
     }, 1000);
 
-    // 3. Vercel Rewrite를 통한 PDF 로드 (CORS 회피)
-    const pdfUrl = '/pdf-proxy/RC1-1part56.pdf?alt=media&token=deef03c4-c3f4-42d3-9399-18a57150fceb';
+    // 4. 전체 화면 기능
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+        }
+    }
 
+    // 5. 채점 로직
+    function gradeTest() {
+        clearInterval(stopwatch);
+        let part5Correct = 0; // 101~130
+        let part6Correct = 0; // 131~146
+        
+        for(let i=101; i<=146; i++) {
+            const selected = document.querySelector(`input[name="q${i}"]:checked`);
+            if (selected && selected.value === answers[i]) {
+                if (i <= 130) part5Correct++;
+                else part6Correct++;
+            }
+        }
+
+        const totalTime = timerDisplay.innerText;
+        alert(`
+            [채점 결과 보고서]
+            ----------------------
+            진행 시간: ${totalTime}
+            ----------------------
+            Part 5: ${part5Correct} / 30
+            Part 6: ${part6Correct} / 16
+            총 맞은 개수: ${part5Correct + part6Correct} / 46
+            ----------------------
+            수고하셨습니다!
+        `);
+    }
+
+    // 6. PDF 로드 (Vercel 프록시)
+    const pdfUrl = '/pdf-proxy/RC1-1part56.pdf?alt=media&token=deef03c4-c3f4-42d3-9399-18a57150fceb';
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     async function loadPDF() {
-        try {
-            const loadingTask = pdfjsLib.getDocument(pdfUrl);
-            const pdf = await loadingTask.promise;
-            
-            // 1페이지(좌), 2페이지(우) 렌더링
-            renderPage(pdf, 1, 'canvas-left');
-            renderPage(pdf, 2, 'canvas-right');
-        } catch (e) {
-            console.error("PDF 로드 오류:", e);
-            alert("PDF를 불러올 수 없습니다. vercel.json 설정을 확인해주세요.");
-        }
+        const loadingTask = pdfjsLib.getDocument(pdfUrl);
+        const pdf = await loadingTask.promise;
+        renderPage(pdf, 1, 'canvas-left');
+        renderPage(pdf, 2, 'canvas-right');
     }
 
     async function renderPage(pdf, num, canvasId) {
         const page = await pdf.getPage(num);
         const canvas = document.getElementById(canvasId);
         const context = canvas.getContext('2d');
-        
-        // 고해상도 렌더링
-        const viewport = page.getViewport({ scale: 2.5 }); 
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        const renderContext = { canvasContext: context, viewport: viewport };
-        await page.render(renderContext).promise;
+        const wrapper = canvas.parentElement;
+        const viewport = page.getViewport({ scale: 2.0 });
+        const scale = wrapper.clientHeight / viewport.height;
+        const scaledViewport = page.getViewport({ scale: scale });
+        canvas.height = scaledViewport.height;
+        canvas.width = scaledViewport.width;
+        page.render({ canvasContext: context, viewport: scaledViewport });
     }
 
     loadPDF();
+    // 시작 시 전체 화면 시도 (브라우저 정책상 사용자 클릭 시에만 가능하므로 버튼 클릭 권장)
 </script>
-
 </body>
 </html>
