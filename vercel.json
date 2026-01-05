@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/pdf-proxy/:path*",
+      "destination": "https://firebasestorage.googleapis.com/v0/b/eduthot-fb088.firebasestorage.app/o/:path*"
+    }
+  ]
+}
